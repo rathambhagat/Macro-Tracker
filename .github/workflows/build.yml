@@ -12,20 +12,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Runs the build inside Kivy's own official Docker image, which
-      # bundles a tested, mutually-compatible NDK/SDK/Python/pip. This
-      # avoids hand-assembling that toolchain on the bare runner, which is
-      # what caused earlier failures (NDK/GL mismatches, python3 vs
-      # hostpython3 drift, broken pip internals from unpinned host tools).
-      - name: Build debug APK (via kivy/buildozer Docker image)
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
+      - name: Cache Buildozer global directory (SDK/NDK downloads)
+        uses: actions/cache@v4
         with:
-          workdir: .
-          buildozer_version: stable
+          path: .buildozer_global
+          key: buildozer-global-${{ hashFiles('buildozer.spec') }}
+
+      # Calls the official kivy/buildozer Docker image directly instead of
+      # going through a third-party wrapper action. That image already
+      # bundles a tested, matched NDK/SDK/Python/JDK - no extra install
+      # steps needed, which avoids the wrapper action's own broken Java-PPA
+      # layer that failed on the image's current Ubuntu base.
+      - name: Pull kivy/buildozer image
+        run: docker pull ghcr.io/kivy/buildozer:latest
+
+      - name: Build debug APK
+        run: |
+          docker run --rm \
+            --volume "${{ github.workspace }}":/home/user/hostcwd \
+            --volume "${{ github.workspace }}/.buildozer_global":/home/user/.buildozer \
+            ghcr.io/kivy/buildozer:latest \
+            android debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: macro-tracker-apk
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: bin/*.apk
