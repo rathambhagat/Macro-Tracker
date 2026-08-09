@@ -11,7 +11,10 @@ version = 1.0
 
 # python3, kivy, kivymd (MD3-capable), sqlite3 is stdlib but pinned here
 # explicitly as requested for clarity in the build environment.
-requirements = python3,kivy==2.3.0,kivymd==1.2.0,sqlite3,pillow
+# Kivy 2.3.1 (not 2.3.0) is required: 2.3.0's GL binding code was written
+# against older GLES headers and fails to compile against NDK 25's headers
+# ("too few arguments to function call"). 2.3.1 fixed that.
+requirements = python3,kivy==2.3.1,kivymd==1.2.0,sqlite3,pillow
 
 orientation = portrait
 fullscreen = 0
@@ -25,11 +28,9 @@ fullscreen = 0
 android.permissions = INTERNET
 android.api = 33
 android.minapi = 21
-# NDK 25b ships newer GLES headers with a different glVertexAttribPointer
-# signature than Kivy 2.3.0's generated C code expects, which breaks the
-# build with "too few arguments to function call" errors. NDK 23b is the
-# version known to work with Kivy 2.3.0.
-android.ndk = 23b
+# python-for-android now requires NDK >= 25, so we can't downgrade below
+# that. Paired with kivy==2.3.1 above, this combination is known to work.
+android.ndk = 25b
 android.accept_sdk_license = True
 android.archs = arm64-v8a, armeabi-v7a
 
