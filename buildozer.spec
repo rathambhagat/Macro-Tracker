@@ -25,12 +25,13 @@ fullscreen = 0
 android.permissions = INTERNET
 android.api = 33
 android.minapi = 21
-android.ndk = 25b
+# NDK 25b ships newer GLES headers with a different glVertexAttribPointer
+# signature than Kivy 2.3.0's generated C code expects, which breaks the
+# build with "too few arguments to function call" errors. NDK 23b is the
+# version known to work with Kivy 2.3.0.
+android.ndk = 23b
 android.accept_sdk_license = True
 android.archs = arm64-v8a, armeabi-v7a
-
-# Keep the app offline-only: no extra network services requested.
-p4a.branch = master
 
 [buildozer]
 
