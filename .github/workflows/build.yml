@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch: {}
 
 jobs:
@@ -12,40 +12,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            git zip unzip openjdk-17-jdk python3-pip autoconf \
-            libtool pkg-config zlib1g-dev libncurses5-dev \
-            libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev \
-            build-essential ccache automake
-
-      - name: Install Buildozer + Cython
-        run: |
-          pip install --upgrade pip
-          pip install buildozer cython==0.29.36
-
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
         with:
-          path: ~/.buildozer
+          path: .buildozer_global
           key: buildozer-global-${{ hashFiles('buildozer.spec') }}
 
-      - name: Cache project .buildozer directory
-        uses: actions/cache@v4
+      # This runs the ENTIRE build inside Kivy's own official Docker image,
+      # which bundles a tested, mutually-compatible NDK/SDK/Python/pip.
+      # We stop hand-assembling that toolchain on the bare runner, which is
+      # what caused every previous failure (NDK/GL mismatches, python3 vs
+      # hostpython3 drift, broken pip internals from unpinned host tools).
+      - name: Build debug APK (via kivy/buildozer Docker image)
+        uses: ArtemSBulgakov/buildozer-action@v2
         with:
-          path: .buildozer
-          key: buildozer-project-${{ hashFiles('buildozer.spec') }}
-
-      - name: Build debug APK
-        run: |
-          yes | buildozer android debug
+          workdir: .
+          buildozer_version: stable
+          buildozer_cmd: buildozer -v android debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
