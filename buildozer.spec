@@ -14,7 +14,16 @@ version = 1.0
 # Kivy 2.3.1 (not 2.3.0) is required: 2.3.0's GL binding code was written
 # against older GLES headers and fails to compile against NDK 25's headers
 # ("too few arguments to function call"). 2.3.1 fixed that.
-requirements = python3,kivy==2.3.1,kivymd==1.2.0,sqlite3,pillow
+# cython is pinned here (not just in the CI step) because p4a builds Kivy
+# via an isolated pip wheel build that resolves its OWN Cython version from
+# Kivy's package metadata, ignoring any cython pinned in the outer shell.
+# An unpinned/too-new Cython there regenerates the .pyx->.c GL bindings
+# with a mismatched function signature, causing the same compile errors.
+# python3 is pinned to 3.11.9 because, left unpinned, p4a builds against
+# whatever the newest "python3" recipe is (it picked 3.14 and that broke
+# pip's own internals plus KivyMD's dependency resolution). kivymd is
+# pinned to 1.1.1, the last release verified against this exact chain.
+requirements = python3==3.11.9,cython==0.29.36,kivy==2.3.1,kivymd==1.1.1,sqlite3,pillow
 
 orientation = portrait
 fullscreen = 0
