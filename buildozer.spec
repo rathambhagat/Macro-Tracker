@@ -23,7 +23,10 @@ version = 1.0
 # whatever the newest "python3" recipe is (it picked 3.14 and that broke
 # pip's own internals plus KivyMD's dependency resolution). kivymd is
 # pinned to 1.1.1, the last release verified against this exact chain.
-requirements = python3==3.11.9,cython==0.29.36,kivy==2.3.1,kivymd==1.1.1,sqlite3,pillow
+# hostpython3 MUST be pinned to the exact same version as python3 - p4a
+# builds them as two separate recipes and hard-fails if they don't match
+# ("python3 should have same version as hostpython3").
+requirements = python3==3.11.9,hostpython3==3.11.9,cython==0.29.36,kivy==2.3.1,kivymd==1.1.1,sqlite3,pillow
 
 orientation = portrait
 fullscreen = 0
