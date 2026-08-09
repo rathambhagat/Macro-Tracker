@@ -2,40 +2,43 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main, master ]
-  workflow_dispatch: {}
+    branches: [main, master]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Cache Buildozer global directory (SDK/NDK downloads)
-        uses: actions/cache@v4
-        with:
-          path: .buildozer_global
-          key: buildozer-global-${{ hashFiles('buildozer.spec') }}
+      # The Buildozer container user must be able to write into the mounted repo.
+      - name: Make workspace writable for Buildozer container
+        run: sudo chmod -R a+rwX "${{ github.workspace }}"
 
-      # Calls the official kivy/buildozer Docker image directly instead of
-      # going through a third-party wrapper action. That image already
-      # bundles a tested, matched NDK/SDK/Python/JDK - no extra install
-      # steps needed, which avoids the wrapper action's own broken Java-PPA
-      # layer that failed on the image's current Ubuntu base.
       - name: Pull kivy/buildozer image
         run: docker pull ghcr.io/kivy/buildozer:latest
 
+      # Do NOT mount .buildozer_global for the first successful build.
+      # Let the official image use its own internal SDK/NDK state.
       - name: Build debug APK
         run: |
           docker run --rm \
+            --entrypoint /bin/bash \
+            --workdir /home/user/hostcwd \
             --volume "${{ github.workspace }}":/home/user/hostcwd \
-            --volume "${{ github.workspace }}/.buildozer_global":/home/user/.buildozer \
             ghcr.io/kivy/buildozer:latest \
-            android debug
+            -lc "buildozer android debug"
+
+      - name: Fix APK permissions
+        run: |
+          sudo chown -R "$USER:$USER" bin || true
+          sudo chmod -R u+rwX bin || true
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: macro-tracker-apk
           path: bin/*.apk
+          if-no-files-found: error
