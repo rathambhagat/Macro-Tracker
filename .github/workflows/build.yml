@@ -13,23 +13,54 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # The Buildozer container user must be able to write into the mounted repo.
-      - name: Make workspace writable for Buildozer container
-        run: sudo chmod -R a+rwX "${{ github.workspace }}"
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-      - name: Pull kivy/buildozer image
-        run: docker pull ghcr.io/kivy/buildozer:latest
+      - name: Force python3 to use the selected Python
+        run: |
+          sudo ln -sf "$(which python)" /usr/local/bin/python3
+          python3 --version
 
-      # Do NOT mount .buildozer_global for the first successful build.
-      # Let the official image use its own internal SDK/NDK state.
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            git \
+            zip \
+            unzip \
+            patch \
+            autoconf \
+            libtool \
+            pkg-config \
+            cmake \
+            ccache \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libtinfo5 \
+            libffi-dev \
+            libssl-dev \
+            build-essential \
+            openjdk-17-jdk-headless
+
+      - name: Install Buildozer
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install buildozer==1.5.0 virtualenv cython==0.29.36
+
+      - name: Remove old Buildozer state
+        run: |
+          rm -rf .buildozer
+          rm -rf ~/.buildozer
+
       - name: Build debug APK
         run: |
-          docker run --rm \
-            --entrypoint /bin/bash \
-            --workdir /home/user/hostcwd \
-            --volume "${{ github.workspace }}":/home/user/hostcwd \
-            ghcr.io/kivy/buildozer:latest \
-            -lc "buildozer android debug"
+          python -m buildozer android debug
+        env:
+          CI: true
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
 
       - name: Fix APK permissions
         run: |
