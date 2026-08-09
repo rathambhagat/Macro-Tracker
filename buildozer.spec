@@ -9,24 +9,20 @@ source.include_exts = py,png,jpg,kv,atlas,db
 
 version = 1.0
 
-# python3, kivy, kivymd (MD3-capable), sqlite3 is stdlib but pinned here
-# explicitly as requested for clarity in the build environment.
-# Kivy 2.3.1 (not 2.3.0) is required: 2.3.0's GL binding code was written
-# against older GLES headers and fails to compile against NDK 25's headers
-# ("too few arguments to function call"). 2.3.1 fixed that.
-# cython is pinned here (not just in the CI step) because p4a builds Kivy
-# via an isolated pip wheel build that resolves its OWN Cython version from
-# Kivy's package metadata, ignoring any cython pinned in the outer shell.
-# An unpinned/too-new Cython there regenerates the .pyx->.c GL bindings
-# with a mismatched function signature, causing the same compile errors.
-# python3 is pinned to 3.11.9 because, left unpinned, p4a builds against
-# whatever the newest "python3" recipe is (it picked 3.14 and that broke
-# pip's own internals plus KivyMD's dependency resolution). kivymd is
-# pinned to 1.1.1, the last release verified against this exact chain.
-# hostpython3 MUST be pinned to the exact same version as python3 - p4a
-# builds them as two separate recipes and hard-fails if they don't match
-# ("python3 should have same version as hostpython3").
-requirements = python3==3.11.9,hostpython3==3.11.9,cython==0.29.36,kivy==2.3.1,kivymd==1.1.1,sqlite3,pillow
+# We build inside the official kivy/buildozer Docker image (see the
+# GitHub Actions workflow), which ships its own tested, matched set of
+# NDK / SDK / Python / pip. That eliminates the whole class of errors we
+# hit trying to hand-assemble that toolchain on a bare Ubuntu runner
+# (NDK/GL mismatches, python3-vs-hostpython3 version drift, broken pip
+# internals). We still pin the pure-Python/package-level versions below,
+# because these conflicts come from the packages themselves, not the host:
+#   - kivy==2.3.1: 2.3.0's GL binding code doesn't compile against modern
+#     NDK GLES headers ("too few arguments to function call").
+#   - pillow==9.5.0: every kivymd release in the 0.102.0-2.0.0 range
+#     requires Pillow<10.0.0; an unpinned Pillow grabs 11.x and makes
+#     EVERY kivymd version unresolvable ("ResolutionImpossible").
+#   - kivymd==1.1.1: verified compatible with the above two pins.
+requirements = python3,cython==0.29.36,kivy==2.3.1,kivymd==1.1.1,pillow==9.5.0,sqlite3
 
 orientation = portrait
 fullscreen = 0
@@ -40,9 +36,6 @@ fullscreen = 0
 android.permissions = INTERNET
 android.api = 33
 android.minapi = 21
-# python-for-android now requires NDK >= 25, so we can't downgrade below
-# that. Paired with kivy==2.3.1 above, this combination is known to work.
-android.ndk = 25b
 android.accept_sdk_license = True
 android.archs = arm64-v8a, armeabi-v7a
 
