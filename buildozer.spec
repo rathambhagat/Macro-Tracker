@@ -10,7 +10,7 @@ source.exclude_dirs = .git,.buildozer,.buildozer_global,bin,__pycache__,.github
 
 version = 1.0
 
-requirements = python3,kivy==2.3.1,kivymd==1.1.1,pillow==9.5.0,sqlite3,cython==0.29.36
+requirements = python3==3.11,kivy==2.3.1,kivymd==1.1.1,pillow==9.5.0,sqlite3,filetype
 
 orientation = portrait
 fullscreen = 0
